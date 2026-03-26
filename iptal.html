@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rezervasyon İptali – Bandırma Sanat Müziği</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600&family=Lato:wght@300;400&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+:root{--gold:#c9a96e;--gold-light:#e8d5a3;--gold-dark:#8b6914;--navy:#0d1b2a;--navy-mid:#16293d;--cream:#f5f0e8;--red:#c0392b;--green:#27ae60;--grey-light:#718096;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Lato',sans-serif;background:var(--navy);color:var(--cream);min-height:100vh;display:flex;flex-direction:column;}
+header{background:linear-gradient(180deg,#050d14 0%,var(--navy-mid) 100%);border-bottom:1px solid var(--gold-dark);padding:18px 24px;text-align:center;}
+.ornament{color:var(--gold-dark);font-size:14px;letter-spacing:8px;margin-bottom:6px;}
+header h1{font-family:'Cinzel',serif;font-size:clamp(13px,3vw,20px);color:var(--gold);letter-spacing:2px;}
+header p{color:var(--grey-light);font-size:11px;margin-top:4px;}
+.container{max-width:480px;margin:36px auto;padding:0 24px;flex:1;}
+.card{background:var(--navy-mid);border:1px solid var(--gold-dark);border-radius:8px;padding:30px 26px;text-align:center;}
+.card h2{font-family:'Cinzel',serif;color:var(--gold);font-size:14px;letter-spacing:2px;margin-bottom:10px;}
+.card p{color:var(--gold-light);font-size:13px;line-height:1.7;margin-bottom:22px;}
+.res-info{background:rgba(0,0,0,.3);border-radius:6px;padding:14px;margin-bottom:22px;text-align:left;}
+.res-info table{width:100%;border-collapse:collapse;}
+.res-info td{padding:5px 0;font-size:12px;}
+.res-info td:first-child{color:var(--grey-light);}
+.res-info td:last-child{color:var(--cream);text-align:right;}
+.form-group{margin-bottom:14px;text-align:left;}
+.form-group label{display:block;font-size:10px;letter-spacing:2px;color:var(--gold-light);text-transform:uppercase;margin-bottom:5px;}
+.form-group input{width:100%;background:#0d1b2a;border:1px solid var(--gold-dark);border-radius:4px;padding:11px 13px;color:var(--cream);font-size:18px;font-family:'Lato',sans-serif;letter-spacing:4px;text-align:center;text-transform:uppercase;}
+.form-group input:focus{outline:none;border-color:var(--gold);}
+.form-group input::placeholder{color:var(--grey-light);letter-spacing:1px;font-size:14px;}
+.btn-cancel-confirm{width:100%;background:linear-gradient(135deg,#8b1a1a,var(--red));color:white;border:none;border-radius:4px;padding:13px;font-family:'Cinzel',serif;font-size:12px;letter-spacing:2px;cursor:pointer;transition:filter .2s;}
+.btn-cancel-confirm:hover{filter:brightness(1.15);}
+.btn-cancel-confirm:disabled{opacity:.5;cursor:not-allowed;}
+.btn-back{display:inline-block;margin-top:14px;color:var(--gold-light);font-size:12px;text-decoration:none;border-bottom:1px solid var(--gold-dark);padding-bottom:2px;}
+.message{padding:12px 14px;border-radius:6px;font-size:13px;margin-bottom:18px;display:none;}
+.message.error{background:rgba(192,57,43,.2);border:1px solid var(--red);color:#e07070;}
+.message.success{background:rgba(39,174,96,.2);border:1px solid var(--green);color:#70c070;}
+.icon-big{font-size:48px;margin-bottom:14px;}
+footer{border-top:1px solid var(--gold-dark);padding:16px;text-align:center;color:var(--grey-light);font-size:10px;letter-spacing:1px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="ornament">✦ ✦ ✦</div>
+  <h1>BANDIRMA SANAT MÜZİĞİ</h1>
+  <p>Türk Sanat Müziği Bahar Konseri · 19 Nisan 2026</p>
+</header>
+<div class="container">
+  <div id="view-loading" class="card"><p style="color:var(--grey-light);">Rezervasyon bilgileri yükleniyor...</p></div>
+  <div id="view-notfound" class="card" style="display:none;"><div class="icon-big">❓</div><h2>Rezervasyon Bulunamadı</h2><p>Bu bağlantı geçersiz veya rezervasyon daha önce iptal edilmiş olabilir.</p><a href="index.html" class="btn-back">Ana Sayfaya Dön</a></div>
+  <div id="view-already" class="card" style="display:none;"><div class="icon-big">ℹ️</div><h2>Zaten İptal Edilmiş</h2><p>Bu rezervasyon daha önce iptal edilmiştir.</p><a href="index.html" class="btn-back">Ana Sayfaya Dön</a></div>
+  <div id="view-form" class="card" style="display:none;">
+    <h2>REZERVASYON İPTALİ</h2>
+    <p>Rezervasyonunuzu iptal etmek için e-postanıza gelen <strong style="color:var(--gold)">iptal kodunuzu</strong> giriniz.</p>
+    <div class="res-info">
+      <table>
+        <tr><td>Ad Soyad</td><td id="info-name">—</td></tr>
+        <tr><td>Koltuklar</td><td id="info-seats">—</td></tr>
+        <tr><td>Rezervasyon No</td><td id="info-id" style="font-size:11px;">—</td></tr>
+      </table>
+    </div>
+    <div class="message error" id="msg-error"></div>
+    <div class="form-group">
+      <label>İptal Kodu</label>
+      <input type="text" id="inp-code" placeholder="XXXXXX" maxlength="6" autocomplete="off">
+    </div>
+    <button class="btn-cancel-confirm" id="btn-confirm" onclick="confirmCancel()">REZERVASYONU İPTAL ET</button>
+    <br><a href="index.html" class="btn-back">Geri Dön</a>
+  </div>
+  <div id="view-success" class="card" style="display:none;">
+    <div class="icon-big">✅</div>
+    <h2>Rezervasyon İptal Edildi</h2>
+    <p>Rezervasyonunuz başarıyla iptal edildi.<br>Koltuklar tekrar müsait hale gelmiştir.<br><br>İptal onayı e-posta adresinize gönderildi.</p>
+    <a href="index.html" class="btn-back">Ana Sayfaya Dön</a>
+  </div>
+</div>
+<footer>Bandırma Sanat Müziği Topluluğu &nbsp;·&nbsp; bandirmasanatmuzigi@gmail.com</footer>
+
+<script>
+const FIREBASE_CONFIG={apiKey:"AIzaSyDhKzQAs2CXS4GMhQBPd3i8W1TM1R9oJeU",authDomain:"bandirma-sanat-muzigi.firebaseapp.com",projectId:"bandirma-sanat-muzigi",storageBucket:"bandirma-sanat-muzigi.firebasestorage.app",messagingSenderId:"494307833143",appId:"1:494307833143:web:de6550cb0ade33168616b2"};
+const GAS_URL="https://script.google.com/macros/s/AKfycbxeS7sCnkBkSe3TjXlBWpj7mjuCYp_RmZmm88CreJdKuGI96wlFAJwjNedzR0sALcgg/exec";
+firebase.initializeApp(FIREBASE_CONFIG);
+const db=firebase.firestore();
+let currentRes=null,reservationId=null;
+
+async function init(){
+  const params=new URLSearchParams(window.location.search);
+  reservationId=params.get("id");
+  if(!reservationId){show("notfound");return;}
+  try{
+    const doc=await db.collection("reservations").doc(reservationId).get();
+    if(!doc.exists){show("notfound");return;}
+    currentRes=doc.data();
+    if(currentRes.status==="cancelled"){show("already");return;}
+    document.getElementById("info-name").textContent=currentRes.name;
+    document.getElementById("info-seats").textContent=(currentRes.seats||[]).join(", ");
+    document.getElementById("info-id").textContent=reservationId;
+    show("form");
+  }catch(e){show("notfound");}
+}
+function show(v){["loading","notfound","already","form","success"].forEach(x=>document.getElementById(`view-${x}`).style.display="none");document.getElementById(`view-${v}`).style.display="block";}
+
+async function confirmCancel(){
+  const code=document.getElementById("inp-code").value.trim().toUpperCase();
+  const err=document.getElementById("msg-error");
+  err.style.display="none";
+  if(!code){err.textContent="Lütfen iptal kodunuzu giriniz.";err.style.display="block";return;}
+  if(code!==currentRes.cancelCode){err.textContent="İptal kodu hatalı. Lütfen e-postanızı kontrol ediniz.";err.style.display="block";return;}
+  const btn=document.getElementById("btn-confirm");btn.disabled=true;btn.textContent="İptal ediliyor...";
+  try{
+    const batch=db.batch();
+    (currentRes.seats||[]).forEach(s=>batch.delete(db.collection("seats").doc(s)));
+    batch.update(db.collection("reservations").doc(reservationId),{status:"cancelled",cancelledAt:firebase.firestore.FieldValue.serverTimestamp()});
+    await batch.commit();
+    const now=new Date().toLocaleString("tr-TR");
+    await sendMail(currentRes.email,"Rezervasyon İptali – Bandırma Sanat Müziği Bahar Konseri",buildCancelMail(currentRes.name,currentRes.phone,(currentRes.seats||[]).join(", "),reservationId,now));
+    show("success");
+  }catch(e){err.textContent="Bir hata oluştu: "+e.message;err.style.display="block";btn.disabled=false;btn.textContent="REZERVASYONU İPTAL ET";}
+}
+async function sendMail(to,subject,body){
+  await fetch(GAS_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify({to,subject,body})});
+}
+function buildCancelMail(name,phone,seats,resId,cancelDate){
+  return`<!DOCTYPE html><html><body style="font-family:Georgia,serif;background:#1a1a2e;margin:0;padding:20px;"><div style="max-width:600px;margin:0 auto;background:#16213e;border:1px solid #c9a96e;border-radius:8px;padding:36px;"><div style="text-align:center;margin-bottom:20px;"><h1 style="color:#c9a96e;font-size:20px;margin:0;">Bandırma Sanat Müziği</h1><p style="color:#a0a0a0;font-size:12px;margin:4px 0 0;">Türk Sanat Müziği Bahar Konseri</p></div><div style="border-top:1px solid #8b3a3a;border-bottom:1px solid #8b3a3a;padding:14px 0;margin-bottom:20px;"><h2 style="color:#e07070;font-size:17px;margin:0 0 3px;">❌ Rezervasyonunuz İptal Edildi</h2><p style="color:#a0a0a0;margin:0;font-size:12px;">Aşağıda iptal edilen rezervasyon bilgilerinizi bulabilirsiniz.</p></div><table style="width:100%;border-collapse:collapse;margin-bottom:20px;"><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Ad Soyad</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${name}</td></tr><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Telefon</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${phone}</td></tr><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">İptal Edilen Koltuklar</td><td style="color:#e07070;padding:6px 0;font-size:13px;text-align:right;font-weight:bold;">${seats}</td></tr><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Rezervasyon No</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${resId}</td></tr><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">İptal Tarihi</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${cancelDate}</td></tr></table><div style="background:#0f3460;border-radius:6px;padding:16px;margin-bottom:20px;"><h3 style="color:#c9a96e;margin:0 0 7px;font-size:13px;">🎵 Etkinlik Bilgileri</h3><p style="color:#fff;margin:3px 0;font-size:12px;">Türk Sanat Müziği Bahar Konseri</p><p style="color:#a0a0a0;margin:3px 0;font-size:12px;">19 Nisan 2026 Pazar, Saat 20:00</p><p style="color:#a0a0a0;margin:3px 0;font-size:12px;">Bandırma Barış Manço Kültür Merkezi</p></div><div style="background:#1a2a1a;border:1px solid #3a6b3a;border-radius:6px;padding:14px;margin-bottom:20px;"><p style="color:#70c070;margin:0;font-size:12px;">✅ Koltuklar tekrar müsait hale gelmiştir.</p></div><p style="color:#606060;font-size:10px;text-align:center;margin:0;">Bu mail otomatik gönderilmiştir · bandirmasanatmuzigi@gmail.com</p></div></body></html>`;
+}
+init();
+</script>
+</body>
+</html>

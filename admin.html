@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yönetim Paneli – Bandırma Sanat Müziği</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600&family=Lato:wght@300;400&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+:root{
+  --gold:#c9a96e;--gold-light:#e8d5a3;--gold-dark:#8b6914;
+  --navy:#0d1b2a;--navy-mid:#16293d;--cream:#f5f0e8;
+  --red:#c0392b;--green:#27ae60;--grey:#4a5568;--grey-light:#718096;
+  --orange:#e67e22;--purple:#6c3483;
+  --seat-size:20px;--seat-gap:3px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Lato',sans-serif;background:var(--navy);color:var(--cream);min-height:100vh;}
+
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.login-card{background:var(--navy-mid);border:1px solid var(--gold-dark);border-radius:8px;padding:36px 32px;max-width:360px;width:100%;text-align:center;}
+.login-ornament{color:var(--gold-dark);letter-spacing:8px;font-size:14px;margin-bottom:10px;}
+.login-card h1{font-family:'Cinzel',serif;color:var(--gold);font-size:15px;letter-spacing:2px;margin-bottom:4px;}
+.login-card p{color:var(--grey-light);font-size:11px;margin-bottom:24px;}
+.login-input{width:100%;background:var(--navy);border:1px solid var(--gold-dark);border-radius:4px;padding:11px 13px;color:var(--cream);font-size:14px;font-family:'Lato',sans-serif;margin-bottom:12px;}
+.login-input:focus{outline:none;border-color:var(--gold);}
+.btn-login{width:100%;background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:var(--navy);border:none;border-radius:4px;padding:12px;font-family:'Cinzel',serif;font-size:12px;letter-spacing:2px;cursor:pointer;}
+.login-error{color:#e07070;font-size:11px;margin-top:8px;display:none;}
+
+#admin-screen{display:none;}
+.admin-header{background:linear-gradient(180deg,#050d14 0%,var(--navy-mid) 100%);border-bottom:1px solid var(--gold-dark);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.admin-header h1{font-family:'Cinzel',serif;color:var(--gold);font-size:14px;letter-spacing:2px;}
+.header-right{display:flex;align-items:center;gap:10px;}
+.role-badge{font-size:10px;padding:3px 10px;border-radius:12px;letter-spacing:1px;}
+.role-admin{background:rgba(201,169,110,.15);border:1px solid var(--gold-dark);color:var(--gold);}
+.role-observer{background:rgba(108,52,131,.2);border:1px solid var(--purple);color:#c080e0;}
+.btn-logout{background:transparent;border:1px solid var(--gold-dark);color:var(--gold-light);padding:6px 14px;border-radius:4px;font-size:11px;cursor:pointer;font-family:'Cinzel',serif;}
+
+.tabs{display:flex;border-bottom:1px solid var(--gold-dark);background:var(--navy-mid);overflow-x:auto;}
+.tab{padding:12px 18px;font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;color:var(--grey-light);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.tab-content{display:none;padding:20px;}
+.tab-content.active{display:block;}
+
+.card{background:var(--navy-mid);border:1px solid var(--gold-dark);border-radius:8px;padding:20px;margin-bottom:18px;}
+.card h3{font-family:'Cinzel',serif;color:var(--gold);font-size:11px;letter-spacing:2px;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid rgba(201,169,110,.2);}
+
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-bottom:18px;}
+.stat-box{background:rgba(0,0,0,.35);border:1px solid var(--gold-dark);border-radius:6px;padding:14px 16px;text-align:center;}
+.stat-box .num{font-family:'Cinzel',serif;font-size:28px;color:var(--gold);}
+.stat-box .num.red{color:#e07070;}
+.stat-box .num.green{color:#70c070;}
+.stat-box .num.orange{color:#f0a050;}
+.stat-box .lbl{font-size:10px;color:var(--grey-light);margin-top:3px;letter-spacing:1px;}
+
+.progress-wrap{margin-bottom:18px;}
+.progress-label{display:flex;justify-content:space-between;font-size:11px;color:var(--gold-light);margin-bottom:6px;}
+.progress-bar{height:10px;background:rgba(255,255,255,.1);border-radius:5px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--gold-dark),var(--gold));border-radius:5px;transition:width .5s;}
+
+.form-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+.form-col{flex:1;min-width:180px;}
+.form-col label{display:block;font-size:10px;letter-spacing:1px;color:var(--gold-light);text-transform:uppercase;margin-bottom:5px;}
+.form-col input{width:100%;background:var(--navy);border:1px solid var(--gold-dark);border-radius:4px;padding:9px 11px;color:var(--cream);font-size:13px;font-family:'Lato',sans-serif;}
+.form-col input:focus{outline:none;border-color:var(--gold);}
+.btn-save{background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:var(--navy);border:none;border-radius:4px;padding:9px 22px;font-family:'Cinzel',serif;font-size:11px;letter-spacing:1px;cursor:pointer;}
+.btn-save:hover{filter:brightness(1.1);}
+.btn-reset{background:rgba(192,57,43,.2);border:1px solid var(--red);color:#e07070;border-radius:4px;padding:9px 22px;font-family:'Cinzel',serif;font-size:11px;letter-spacing:1px;cursor:pointer;margin-left:8px;}
+.save-ok{font-size:11px;color:var(--green);margin-left:10px;display:none;}
+
+.mail-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.mail-row input{flex:1;background:var(--navy);border:1px solid var(--gold-dark);border-radius:4px;padding:9px 11px;color:var(--cream);font-size:13px;}
+.btn-rm-mail{background:rgba(192,57,43,.3);border:1px solid var(--red);color:#e07070;width:30px;height:30px;border-radius:4px;cursor:pointer;font-size:15px;flex-shrink:0;}
+.btn-add-mail{background:transparent;border:1px dashed var(--gold-dark);color:var(--gold-light);padding:7px 14px;border-radius:4px;font-size:11px;cursor:pointer;margin-top:2px;}
+
+/* SEAT MAP */
+.seat-map-outer{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.seat-map-inner-a{display:inline-block;min-width:100%;text-align:center;padding:0 8px;}
+.seat-section-a{display:flex;flex-direction:column;align-items:center;gap:var(--seat-gap);}
+.seat-row-a{display:flex;align-items:center;gap:var(--seat-gap);justify-content:center;}
+.row-lbl-a{font-family:'Cinzel',serif;font-size:8px;color:var(--gold-dark);width:14px;text-align:right;flex-shrink:0;}
+.seat-a{width:var(--seat-size);height:var(--seat-size);border-radius:3px 3px 2px 2px;cursor:pointer;border:none;outline:none;font-size:6px;color:rgba(255,255,255,.5);transition:transform .1s;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.seat-a:hover{transform:scale(1.2);filter:brightness(1.3);}
+.seat-a.s-empty{background:var(--grey);}
+.seat-a.s-reserved{background:var(--red);cursor:default;}
+.seat-a.s-admin{background:var(--purple);}
+.seat-a.s-locked{background:var(--orange);cursor:default;}
+
+.balkon-grid-a{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;max-width:480px;margin:6px auto;}
+.balkon-seat-a{width:var(--seat-size);height:var(--seat-size);border-radius:3px 3px 2px 2px;cursor:pointer;border:none;outline:none;transition:transform .1s,filter .1s;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.balkon-seat-a:hover{transform:scale(1.2);filter:brightness(1.3);}
+.balkon-seat-a.s-empty{background:var(--grey);}
+.balkon-seat-a.s-reserved{background:var(--red);cursor:default;}
+.balkon-seat-a.s-admin{background:var(--purple);}
+.balkon-seat-a.s-locked{background:var(--orange);cursor:default;}
+
+.zone-lbl-a{font-family:'Cinzel',serif;font-size:11px;letter-spacing:3px;color:var(--gold-dark);text-align:center;margin:10px 0 5px;font-weight:700;}
+.stage-mini{text-align:center;margin-top:14px;}
+.stage-bar-m{background:linear-gradient(90deg,transparent,var(--gold-dark),var(--gold),var(--gold-dark),transparent);height:8px;border-radius:4px;margin-bottom:10px;}
+.stage-txt-m{font-family:'Cinzel',serif;letter-spacing:10px;font-size:18px;color:var(--gold);font-weight:600;text-shadow:0 0 20px rgba(201,169,110,0.4);}
+.legend-a{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--gold-light);}
+.leg-dot{width:14px;height:14px;border-radius:3px;}
+
+.seat-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;align-items:center;justify-content:center;padding:20px;}
+.seat-modal-overlay.active{display:flex;}
+.seat-modal-card{background:var(--navy-mid);border:1px solid var(--gold-dark);border-radius:8px;padding:26px 22px;max-width:360px;width:100%;}
+.seat-modal-card h3{font-family:'Cinzel',serif;color:var(--gold);font-size:13px;margin-bottom:7px;}
+.seat-modal-card p{color:var(--gold-light);font-size:12px;line-height:1.6;margin-bottom:18px;}
+.action-btns{display:flex;flex-direction:column;gap:8px;}
+.act-btn{padding:10px;border-radius:4px;border:none;font-family:'Cinzel',serif;font-size:11px;letter-spacing:1px;cursor:pointer;}
+.act-reserve{background:var(--purple);color:white;}
+.act-free{background:var(--grey);color:white;}
+.act-cancel{background:var(--red);color:white;}
+.act-close{background:transparent;border:1px solid var(--gold-dark);color:var(--gold-light);}
+
+.res-table{width:100%;border-collapse:collapse;font-size:12px;}
+.res-table th{background:rgba(0,0,0,.4);color:var(--gold);font-family:'Cinzel',serif;font-size:9px;letter-spacing:1px;padding:9px 10px;text-align:left;border-bottom:1px solid var(--gold-dark);}
+.res-table td{padding:9px 10px;border-bottom:1px solid rgba(201,169,110,.08);color:var(--cream);vertical-align:top;}
+.res-table tr:hover td{background:rgba(201,169,110,.04);}
+.s-active{color:var(--green);font-size:10px;}
+.s-cancelled{color:var(--red);font-size:10px;}
+.btn-cancel-row{background:rgba(192,57,43,.2);border:1px solid var(--red);color:#e07070;padding:4px 9px;border-radius:3px;font-size:10px;cursor:pointer;}
+.btn-excel{background:rgba(39,174,96,.15);border:1px solid var(--green);color:#70c070;padding:8px 16px;border-radius:4px;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;cursor:pointer;margin-bottom:14px;}
+.observer-notice{background:rgba(108,52,131,.15);border:1px solid var(--purple);border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#c080e0;}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-ornament">✦ ✦ ✦</div>
+    <h1>YÖNETİM PANELİ</h1>
+    <p>Bandırma Sanat Müziği Konser Rezervasyon</p>
+    <input class="login-input" type="text" id="inp-user" placeholder="Kullanıcı adı" autocomplete="username">
+    <input class="login-input" type="password" id="inp-pass" placeholder="Şifre" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-login" onclick="doLogin()">GİRİŞ YAP</button>
+    <div class="login-error" id="login-error">Kullanıcı adı veya şifre hatalı.</div>
+  </div>
+</div>
+
+<div id="admin-screen">
+  <div class="admin-header">
+    <h1>✦ YÖNETİM PANELİ</h1>
+    <div class="header-right">
+      <span class="role-badge" id="role-badge"></span>
+      <button class="btn-logout" onclick="doLogout()">ÇIKIŞ</button>
+    </div>
+  </div>
+  <div class="tabs" id="tabs-bar">
+    <div class="tab active" onclick="switchTab(0)">📊 Genel Bakış</div>
+    <div class="tab" onclick="switchTab(1)">🪑 Koltuk Haritası</div>
+    <div class="tab" onclick="switchTab(2)">📋 Rezervasyonlar</div>
+    <div class="tab admin-only" onclick="switchTab(3)">⚙ Ayarlar</div>
+  </div>
+
+  <!-- TAB 0: DASHBOARD -->
+  <div class="tab-content active" id="tab-0">
+    <div class="card">
+      <h3>GENEL İSTATİSTİKLER</h3>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="num green" id="st-active">—</div><div class="lbl">Aktif Rezervasyon</div></div>
+        <div class="stat-box"><div class="num" id="st-taken">—</div><div class="lbl">Dolu Koltuk</div></div>
+        <div class="stat-box"><div class="num green" id="st-empty">—</div><div class="lbl">Boş Koltuk</div></div>
+        <div class="stat-box"><div class="num orange" id="st-admin">—</div><div class="lbl">Admin Ayrımı</div></div>
+        <div class="stat-box"><div class="num orange" id="st-locked">—</div><div class="lbl">Geçici Kilitli</div></div>
+        <div class="stat-box"><div class="num red" id="st-cancelled">—</div><div class="lbl">İptal Edilen</div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Doluluk Oranı</span><span id="st-pct">—%</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>SON REZERVASYONLAR</h3>
+      <div style="overflow-x:auto;"><table class="res-table"><thead><tr><th>Tarih</th><th>Ad Soyad</th><th>Yer(ler)</th><th>Durum</th></tr></thead><tbody id="recent-tbody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- TAB 1: SEATS -->
+  <div class="tab-content" id="tab-1">
+    <div class="card">
+      <h3>KOLTUK HARİTASI</h3>
+      <div id="obs-seat-notice" class="observer-notice" style="display:none;">👁 Gözlemci modundasınız — sadece görüntüleme yapabilirsiniz.</div>
+      <div class="legend-a">
+        <div class="leg-item"><div class="leg-dot" style="background:var(--grey)"></div>Boş</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>Rezerveli</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--purple)"></div>Admin Ayrımı</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--orange)"></div>Geçici Kilitli</div>
+      </div>
+      <div class="seat-map-outer">
+        <div class="seat-map-inner-a">
+          <div class="stage-mini"><div class="stage-bar-m"></div><div class="stage-txt-m">S A H N E</div></div>
+          <div class="zone-lbl-a" style="margin-top:10px;">— ALT KAT —</div>
+          <div class="seat-section-a" id="admin-lower"></div>
+          <div class="zone-lbl-a" style="margin-top:16px;">— BALKON —</div>
+          <div class="seat-section-a" id="admin-balkon"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: RESERVATIONS -->
+  <div class="tab-content" id="tab-2">
+    <div class="card">
+      <h3>REZERVASYON LİSTESİ</h3>
+      <div id="obs-res-notice" class="observer-notice" style="display:none;">👁 Gözlemci modundasınız — işlem yapamazsınız.</div>
+      <button class="btn-excel" onclick="exportCSV()">⬇ CSV Olarak İndir</button>
+      <div style="overflow-x:auto;"><table class="res-table"><thead><tr><th>Tarih</th><th>Ad Soyad</th><th>E-Posta</th><th>Telefon</th><th>Yer(ler)</th><th>Durum</th><th id="th-act"></th></tr></thead><tbody id="res-tbody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- TAB 3: SETTINGS -->
+  <div class="tab-content" id="tab-3">
+    <div class="card">
+      <h3>YAYIN TARİHİ / GERİ SAYIM</h3>
+      <p style="font-size:12px;color:var(--grey-light);margin-bottom:14px;">Bu tarihten önce siteye girenlere geri sayım gösterilir. Sıfırla butonu geri sayımı kaldırarak siteyi hemen açar.</p>
+      <div class="form-row">
+        <div class="form-col"><label>Açılış Tarihi ve Saati</label><input type="datetime-local" id="inp-opendate"></div>
+      </div>
+      <button class="btn-save" onclick="saveOpenDate()">KAYDET</button>
+      <button class="btn-reset" onclick="resetOpenDate()">GERİ SAYIMI SIFIRLA</button>
+      <span class="save-ok" id="ok-date">✓ Kaydedildi</span>
+    </div>
+
+    <div class="card">
+      <h3>ADMİN GİRİŞ BİLGİLERİ</h3>
+      <div class="form-row">
+        <div class="form-col"><label>Kullanıcı Adı</label><input type="text" id="inp-new-user" placeholder="admin"></div>
+        <div class="form-col"><label>Yeni Şifre</label><input type="password" id="inp-new-pass" placeholder="••••••"></div>
+      </div>
+      <button class="btn-save" onclick="saveCreds('admin')">KAYDET</button>
+      <span class="save-ok" id="ok-admin">✓ Kaydedildi</span>
+    </div>
+
+    <div class="card">
+      <h3>GÖZLEMCİ GİRİŞ BİLGİLERİ</h3>
+      <div class="form-row">
+        <div class="form-col"><label>Kullanıcı Adı</label><input type="text" id="inp-obs-user" placeholder="gozlemci"></div>
+        <div class="form-col"><label>Şifre</label><input type="password" id="inp-obs-pass" placeholder="••••••"></div>
+      </div>
+      <button class="btn-save" onclick="saveCreds('observer')">KAYDET</button>
+      <span class="save-ok" id="ok-obs">✓ Kaydedildi</span>
+    </div>
+  </div>
+</div>
+
+<!-- SEAT MODAL -->
+<div class="seat-modal-overlay" id="seat-modal">
+  <div class="seat-modal-card">
+    <h3 id="modal-title">Koltuk</h3>
+    <p id="modal-info"></p>
+    <div class="action-btns" id="modal-btns"></div>
+  </div>
+</div>
+
+<script>
+const FIREBASE_CONFIG={apiKey:"AIzaSyDhKzQAs2CXS4GMhQBPd3i8W1TM1R9oJeU",authDomain:"bandirma-sanat-muzigi.firebaseapp.com",projectId:"bandirma-sanat-muzigi",storageBucket:"bandirma-sanat-muzigi.firebasestorage.app",messagingSenderId:"494307833143",appId:"1:494307833143:web:de6550cb0ade33168616b2"};
+firebase.initializeApp(FIREBASE_CONFIG);
+const db=firebase.firestore();
+
+const LOWER_ROWS=["A","B","C","D","E","G","H","I","K","L"].map(l=>({label:l,seats:24}));
+const BALKON_CAPACITY=113;
+const TOTAL_SEATS=LOWER_ROWS.reduce((a,r)=>a+r.seats,0)+BALKON_CAPACITY; // 240+113=353
+
+let creds={admin:{username:"admin",password:"konser2026"},observer:{username:"gozlemci",password:"izle2026"}};
+let currentRole=null,seatStates={},reservationsList=[],activeSeatId=null;
+
+// ── LOGIN ──
+async function doLogin(){
+  const u=document.getElementById("inp-user").value.trim();
+  const p=document.getElementById("inp-pass").value;
+  try{const doc=await db.collection("config").doc("admin").get();if(doc.exists){const d=doc.data();if(d.admin)creds.admin=d.admin;if(d.observer)creds.observer=d.observer;}}catch(e){}
+  if(u===creds.admin.username&&p===creds.admin.password){currentRole="admin";startPanel();}
+  else if(u===creds.observer.username&&p===creds.observer.password){currentRole="observer";startPanel();}
+  else document.getElementById("login-error").style.display="block";
+}
+function doLogout(){currentRole=null;document.getElementById("login-screen").style.display="flex";document.getElementById("admin-screen").style.display="none";document.getElementById("inp-pass").value="";document.getElementById("login-error").style.display="none";}
+
+function startPanel(){
+  document.getElementById("login-screen").style.display="none";
+  document.getElementById("admin-screen").style.display="block";
+  const badge=document.getElementById("role-badge");
+  badge.textContent=currentRole==="admin"?"ADMİN":"GÖZLEMCİ";
+  badge.className="role-badge "+(currentRole==="admin"?"role-admin":"role-observer");
+  document.querySelectorAll(".admin-only").forEach(el=>el.style.display=currentRole==="admin"?"block":"none");
+  if(currentRole==="observer"){
+    document.getElementById("obs-seat-notice").style.display="block";
+    document.getElementById("obs-res-notice").style.display="block";
+    document.getElementById("th-act").style.display="none";
+  }
+  buildAdminMap();
+  listenSeats();
+  listenReservations();
+  if(currentRole==="admin")loadSettings();
+}
+
+// ── TABS ──
+function switchTab(i){
+  document.querySelectorAll(".tab").forEach((t,j)=>t.classList.toggle("active",j===i));
+  document.querySelectorAll(".tab-content").forEach((t,j)=>t.classList.toggle("active",j===i));
+}
+
+// ── SETTINGS ──
+async function loadSettings(){
+  try{
+    const doc=await db.collection("config").doc("settings").get();
+    if(doc.exists&&doc.data().openDate){
+      const dt=doc.data().openDate.toDate();
+      document.getElementById("inp-opendate").value=new Date(dt.getTime()-dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
+    }
+  }catch(e){}
+  try{
+    const doc=await db.collection("config").doc("admin").get();
+    if(doc.exists){
+      const d=doc.data();
+      if(d.admin)document.getElementById("inp-new-user").value=d.admin.username||"";
+      if(d.observer)document.getElementById("inp-obs-user").value=d.observer.username||"";
+    }
+  }catch(e){}
+}
+async function saveOpenDate(){
+  const v=document.getElementById("inp-opendate").value;if(!v)return;
+  await db.collection("config").doc("settings").set({openDate:firebase.firestore.Timestamp.fromDate(new Date(v))},{merge:true});
+  showOk("ok-date");
+}
+async function resetOpenDate(){
+  if(!confirm("Geri sayım sıfırlanacak ve site hemen açılacak. Emin misiniz?"))return;
+  await db.collection("config").doc("settings").set({openDate:firebase.firestore.Timestamp.fromDate(new Date(Date.now()-1000))},{merge:true});
+  document.getElementById("inp-opendate").value="";
+  showOk("ok-date");
+}
+async function saveCreds(role){
+  const u=document.getElementById(role==="admin"?"inp-new-user":"inp-obs-user").value.trim();
+  const p=document.getElementById(role==="admin"?"inp-new-pass":"inp-obs-pass").value.trim();
+  if(!u||!p){alert("Kullanıcı adı ve şifre boş bırakılamaz.");return;}
+  const existing=(await db.collection("config").doc("admin").get()).data()||{};
+  existing[role]={username:u,password:p};
+  await db.collection("config").doc("admin").set(existing);
+  creds[role]={username:u,password:p};
+  showOk(role==="admin"?"ok-admin":"ok-obs");
+}
+function showOk(id){const el=document.getElementById(id);el.style.display="inline";setTimeout(()=>el.style.display="none",2500);}
+
+// ── SEAT MAP ──
+const BALKON_ROWS=[
+  {label:"M",seats:23},{label:"O",seats:22},{label:"P",seats:23},
+  {label:"S",seats:19},{label:"Y",seats:14},{label:"Z",seats:12}
+];
+
+function buildAdminMap(){
+  // Alt kat — 1 numara sağda (direction:rtl)
+  const lc=document.getElementById("admin-lower");lc.innerHTML="";
+  LOWER_ROWS.forEach(row=>{
+    const rowEl=document.createElement("div");rowEl.className="seat-row-a";
+    rowEl.style.direction="rtl";
+    const lblR=document.createElement("div");lblR.className="row-lbl-a";lblR.style.textAlign="left";lblR.textContent=row.label;rowEl.appendChild(lblR);
+    for(let n=1;n<=row.seats;n++){
+      const id=`${row.label}${n}`;
+      const s=document.createElement("button");s.className="seat-a s-empty";s.id=`as-${id}`;s.textContent=n;s.style.direction="ltr";
+      if(currentRole==="admin")s.onclick=()=>openSeatModal(id);else s.style.cursor="default";
+      rowEl.appendChild(s);
+    }
+    const lblL=document.createElement("div");lblL.className="row-lbl-a";lblL.style.textAlign="left";lblL.textContent=row.label;rowEl.appendChild(lblL);
+    lc.appendChild(rowEl);
+  });
+  // Balkon — satır satır, etiketli
+  const bc=document.getElementById("admin-balkon");bc.innerHTML="";
+  BALKON_ROWS.forEach(row=>{
+    const rowEl=document.createElement("div");rowEl.className="seat-row-a";
+    rowEl.style.direction="rtl";
+    const lblR=document.createElement("div");lblR.className="row-lbl-a";lblR.style.textAlign="left";lblR.textContent=row.label;rowEl.appendChild(lblR);
+    for(let n=1;n<=row.seats;n++){
+      const id=`${row.label}${n}`;
+      const s=document.createElement("button");s.className="balkon-seat-a s-empty";s.id=`as-${id}`;
+      s.style.direction="ltr";s.style.fontSize="6px";s.textContent=n;
+      if(currentRole==="admin")s.onclick=()=>openSeatModal(id);else s.style.cursor="default";
+      rowEl.appendChild(s);
+    }
+    const lblL=document.createElement("div");lblL.className="row-lbl-a";lblL.style.textAlign="left";lblL.textContent=row.label;rowEl.appendChild(lblL);
+    bc.appendChild(rowEl);
+  });
+}
+
+function listenSeats(){
+  db.collection("seats").onSnapshot(snap=>{
+    const ns={};
+    snap.forEach(doc=>{
+      const d=doc.data();
+      if(d.status==="locked"&&d.lockExpires){
+        const exp=d.lockExpires.toDate?d.lockExpires.toDate():new Date(d.lockExpires);
+        if(Date.now()>exp.getTime()){db.collection("seats").doc(doc.id).delete();return;}
+      }
+      ns[doc.id]=d;
+    });
+    seatStates=ns;
+    // Tüm koltukları güncelle
+    LOWER_ROWS.forEach(row=>{for(let n=1;n<=row.seats;n++)updateAdminSeat(`${row.label}${n}`,ns);});
+    BALKON_ROWS.forEach(row=>{for(let n=1;n<=row.seats;n++)updateAdminSeat(`${row.label}${n}`,ns);});
+    updateStats();
+  });
+}
+
+function updateAdminSeat(id,ns){
+  const el=document.getElementById(`as-${id}`);if(!el)return;
+  const balkonLabels=["M","O","P","S","Y","Z"];
+  const isBalkon=balkonLabels.some(l=>id.startsWith(l)&&!isNaN(id.slice(l.length)));
+  const base=isBalkon?"balkon-seat-a":"seat-a";
+  el.className=base;
+  const d=ns[id];
+  if(!d)el.classList.add("s-empty");
+  else if(d.status==="reserved")el.classList.add("s-reserved");
+  else if(d.status==="admin")el.classList.add("s-admin");
+  else if(d.status==="locked")el.classList.add("s-locked");
+  else el.classList.add("s-empty");
+}
+
+// ── SEAT MODAL ──
+function openSeatModal(seatId){
+  if(currentRole!=="admin")return;
+  activeSeatId=seatId;
+  const data=seatStates[seatId];
+  const balkonLabels2=["M","O","P","S","Y","Z"];
+  const isBalkon=balkonLabels2.some(l=>seatId.startsWith(l)&&!isNaN(seatId.slice(l.length)));
+  const label=isBalkon?`${seatId} No'lu Balkon Koltuğu`:`Koltuk ${seatId}`;
+  document.getElementById("modal-title").textContent=label;
+  const info=document.getElementById("modal-info");
+  const btns=document.getElementById("modal-btns");btns.innerHTML="";
+  if(!data||data.status==="locked"){
+    info.innerHTML=data?"⏱ Geçici kilitli — başka kullanıcı seçiyor.":"Bu yer boş.";
+    addAct(btns,"Admin Adına Ayır","act-btn act-reserve",adminReserve);
+  }else if(data.status==="admin"){
+    info.innerHTML="🟣 Admin tarafından ayrılmış.";
+    addAct(btns,"Ayrımı Kaldır","act-btn act-free",freeSeat);
+  }else if(data.status==="reserved"){
+    info.innerHTML=`🔴 Rezerveli<br><strong>${data.name||"—"}</strong><br>${data.reservedBy||""}<br>${data.phone||""}`;
+    addAct(btns,"Bu Rezervasyonu İptal Et","act-btn act-cancel",cancelFromSeat);
+  }
+  addAct(btns,"Kapat","act-btn act-close",closeSeatModal);
+  document.getElementById("seat-modal").classList.add("active");
+}
+function addAct(c,t,cls,fn){const b=document.createElement("button");b.className=cls;b.textContent=t;b.onclick=fn;c.appendChild(b);}
+function closeSeatModal(){document.getElementById("seat-modal").classList.remove("active");activeSeatId=null;}
+async function adminReserve(){if(!activeSeatId)return;await db.collection("seats").doc(activeSeatId).set({status:"admin",reservedBy:"admin",reservedAt:firebase.firestore.FieldValue.serverTimestamp()});closeSeatModal();}
+async function freeSeat(){if(!activeSeatId)return;await db.collection("seats").doc(activeSeatId).delete();closeSeatModal();}
+async function cancelFromSeat(){
+  if(!activeSeatId)return;
+  const data=seatStates[activeSeatId];
+  if(!confirm(`${data&&data.name?data.name:"Bu yer"} rezervasyonu iptal edilsin mi?`))return;
+  if(data&&data.reservationId){
+    const resDoc=await db.collection("reservations").doc(data.reservationId).get();
+    if(resDoc.exists){
+      const seats=resDoc.data().seats||[activeSeatId];
+      const batch=db.batch();
+      seats.forEach(s=>batch.delete(db.collection("seats").doc(s)));
+      batch.update(db.collection("reservations").doc(data.reservationId),{status:"cancelled",cancelledAt:firebase.firestore.FieldValue.serverTimestamp()});
+      await batch.commit();closeSeatModal();return;
+    }
+  }
+  await db.collection("seats").doc(activeSeatId).delete();closeSeatModal();
+}
+
+// ── RESERVATIONS ──
+function listenReservations(){
+  db.collection("reservations").orderBy("reservedAt","desc").onSnapshot(snap=>{
+    reservationsList=[];
+    snap.forEach(doc=>reservationsList.push({id:doc.id,...doc.data()}));
+    renderReservations();renderRecent();updateStats();
+  });
+}
+function seatLabel(id){
+  const balkonLabels=["M","O","P","S","Y","Z"];
+  const isB=balkonLabels.some(l=>id.startsWith(l)&&!isNaN(id.slice(l.length)));
+  if(isB)return`${id} No'lu Balkon`;
+  return id;
+}
+function renderReservations(){
+  const tbody=document.getElementById("res-tbody");tbody.innerHTML="";
+  reservationsList.forEach(r=>{
+    const date=r.reservedAt?r.reservedAt.toDate().toLocaleString("tr-TR"):"—";
+    const seats=(r.seats||[]).map(seatLabel).join(", ");
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td style="font-size:10px;color:var(--grey-light);">${date}</td><td>${r.name||"—"}</td><td style="font-size:11px;">${r.email||"—"}</td><td>${r.phone||"—"}</td><td style="font-size:11px;">${seats}</td><td>${r.status==="cancelled"?'<span class="s-cancelled">İptal</span>':'<span class="s-active">Aktif</span>'}</td><td>${(currentRole==="admin"&&r.status!=="cancelled")?`<button class="btn-cancel-row" onclick="adminCancelRes('${r.id}')">İptal Et</button>`:"—"}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+function renderRecent(){
+  const tbody=document.getElementById("recent-tbody");tbody.innerHTML="";
+  reservationsList.slice(0,8).forEach(r=>{
+    const date=r.reservedAt?r.reservedAt.toDate().toLocaleString("tr-TR"):"—";
+    const seats=(r.seats||[]).map(seatLabel).join(", ");
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td style="font-size:10px;color:var(--grey-light);">${date}</td><td>${r.name||"—"}</td><td style="font-size:11px;">${seats}</td><td>${r.status==="cancelled"?'<span class="s-cancelled">İptal</span>':'<span class="s-active">Aktif</span>'}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+async function adminCancelRes(resId){
+  if(currentRole!=="admin")return;
+  const r=reservationsList.find(x=>x.id===resId);
+  if(!r||!confirm(`${r.name} rezervasyonu iptal edilsin mi?`))return;
+  const batch=db.batch();
+  (r.seats||[]).forEach(s=>batch.delete(db.collection("seats").doc(s)));
+  batch.update(db.collection("reservations").doc(resId),{status:"cancelled",cancelledAt:firebase.firestore.FieldValue.serverTimestamp()});
+  await batch.commit();
+}
+
+// ── STATS ──
+function updateStats(){
+  const active=reservationsList.filter(r=>r.status!=="cancelled").length;
+  const cancelled=reservationsList.filter(r=>r.status==="cancelled").length;
+  const taken=Object.values(seatStates).filter(s=>s.status==="reserved").length;
+  const adminRes=Object.values(seatStates).filter(s=>s.status==="admin").length;
+  const locked=Object.values(seatStates).filter(s=>s.status==="locked").length;
+  const totalTaken=taken+adminRes;
+  const pct=Math.round(totalTaken/TOTAL_SEATS*100);
+  document.getElementById("st-active").textContent=active;
+  document.getElementById("st-taken").textContent=totalTaken;
+  document.getElementById("st-empty").textContent=TOTAL_SEATS-totalTaken;
+  document.getElementById("st-admin").textContent=adminRes;
+  document.getElementById("st-locked").textContent=locked;
+  document.getElementById("st-cancelled").textContent=cancelled;
+  document.getElementById("st-pct").textContent=pct+"%";
+  document.getElementById("progress-fill").style.width=pct+"%";
+}
+
+// ── CSV ──
+function exportCSV(){
+  const h=["Rezervasyon No","Tarih","Ad Soyad","E-Posta","Telefon","Yer(ler)","Durum"];
+  const rows=reservationsList.map(r=>[r.id,r.reservedAt?r.reservedAt.toDate().toLocaleString("tr-TR"):"",r.name||"",r.email||"",r.phone||"",(r.seats||[]).map(seatLabel).join(", "),r.status==="cancelled"?"İptal":"Aktif"]);
+  let csv=h.join(";")+"\n";rows.forEach(row=>{csv+=row.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(";")+"\n";});
+  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`rezervasyonlar_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
+}
+
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSeatModal();});
+</script>
+</body>
+</html>

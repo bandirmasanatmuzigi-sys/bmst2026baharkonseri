@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+<title>Bahar Konseri 2026 – Rezervasyon</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600&family=Lato:wght@300;400&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+:root{
+  --gold:#c9a96e;--gold-light:#e8d5a3;--gold-dark:#8b6914;
+  --navy:#0d1b2a;--navy-mid:#16293d;--cream:#f5f0e8;
+  --red:#c0392b;--green:#27ae60;--grey:#4a5568;--grey-light:#718096;
+  --orange:#e67e22;--purple:#6c3483;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Lato',sans-serif;background:var(--navy);color:var(--cream);min-height:100vh;overflow-x:hidden;}
+
+/* COUNTDOWN */
+#countdown-overlay{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:28px;padding:24px;text-align:center;}
+#countdown-overlay h1{font-family:'Cinzel',serif;color:var(--gold);font-size:clamp(16px,4vw,30px);letter-spacing:3px;}
+#countdown-overlay p{color:var(--gold-light);font-family:'Cormorant Garamond',serif;font-size:clamp(13px,2.5vw,19px);font-style:italic;margin-top:6px;}
+.countdown-grid{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;}
+.count-box{background:var(--navy-mid);border:1px solid var(--gold-dark);border-radius:8px;padding:16px 22px;text-align:center;min-width:68px;}
+.count-box span{display:block;font-family:'Cinzel',serif;font-size:clamp(26px,5vw,46px);color:var(--gold);}
+.count-box label{font-size:9px;color:var(--grey-light);letter-spacing:2px;text-transform:uppercase;margin-top:4px;display:block;}
+.cd-info{color:var(--grey-light);font-size:12px;line-height:1.8;}
+
+/* HEADER */
+header{background:linear-gradient(180deg,#050d14 0%,var(--navy-mid) 100%);border-bottom:1px solid var(--gold-dark);padding:18px 24px;text-align:center;}
+.ornament{color:var(--gold-dark);font-size:14px;letter-spacing:8px;margin-bottom:6px;}
+header h1{font-family:'Cinzel',serif;font-size:clamp(13px,3.5vw,24px);color:var(--gold);letter-spacing:2px;}
+header h2{font-family:'Cormorant Garamond',serif;font-size:clamp(19px,5vw,36px);color:var(--cream);font-style:italic;font-weight:300;margin:4px 0;}
+header p{color:var(--gold-light);font-size:clamp(10px,2vw,13px);letter-spacing:1px;margin-top:3px;}
+
+/* HOW TO */
+.how-to{background:var(--navy-mid);border-bottom:1px solid var(--gold-dark);padding:16px 24px;}
+.how-to h3{font-family:'Cinzel',serif;color:var(--gold);font-size:10px;letter-spacing:2px;text-align:center;margin-bottom:12px;}
+.steps{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;max-width:660px;margin:0 auto;}
+.step{display:flex;align-items:center;gap:8px;flex:1;min-width:130px;max-width:180px;}
+.step-num{width:26px;height:26px;border-radius:50%;background:var(--gold-dark);color:var(--cream);font-family:'Cinzel',serif;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.step p{font-size:11px;color:var(--gold-light);line-height:1.4;}
+
+/* LEGEND */
+.legend{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;padding:10px 24px;background:rgba(0,0,0,0.3);border-bottom:1px solid rgba(201,169,110,0.2);}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--gold-light);}
+.legend-dot{width:15px;height:15px;border-radius:3px;flex-shrink:0;}
+
+/* TIMER */
+#timer-bar{display:none;background:#1a0a00;border-bottom:1px solid var(--orange);padding:9px 24px;text-align:center;font-size:12px;color:var(--orange);}
+#timer-bar span{font-weight:bold;font-size:15px;}
+
+/* SEAT MAP */
+.seat-map-wrapper{padding:18px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.seat-map-inner{display:inline-block;min-width:100%;text-align:center;padding:0 12px;}
+
+/* SAHNE - en üstte, büyük ve belirgin */
+.stage-area{text-align:center;margin:0 auto 20px;max-width:700px;padding:0 20px;}
+.stage-bar{background:linear-gradient(90deg,transparent,var(--gold-dark),var(--gold),var(--gold-dark),transparent);height:10px;border-radius:5px;margin-bottom:12px;}
+.stage-text{font-family:'Cinzel',serif;letter-spacing:10px;font-size:20px;color:var(--gold);font-weight:600;text-shadow:0 0 20px rgba(201,169,110,0.4);}
+
+.zone-label{font-family:'Cinzel',serif;font-size:11px;letter-spacing:3px;color:var(--gold-dark);text-align:center;margin:14px 0 6px;text-transform:uppercase;font-weight:700;}
+
+.seat-section{display:flex;flex-direction:column;align-items:center;gap:4px;}
+
+/* Sıra: sağdan sola (1 sağda) — direction:rtl ile sağdan başlatıyoruz */
+.seat-row{display:flex;align-items:center;gap:3px;justify-content:center;direction:rtl;}
+.row-label{font-family:'Cinzel',serif;font-size:9px;color:var(--gold-dark);width:16px;text-align:left;flex-shrink:0;user-select:none;direction:ltr;}
+
+/* SEATS */
+.seat{width:var(--s);height:var(--s);border-radius:5px 5px 3px 3px;cursor:pointer;transition:transform .15s,filter .15s;border:none;outline:none;display:flex;align-items:center;justify-content:center;font-size:calc(var(--s) * 0.3);color:rgba(255,255,255,0.6);font-family:'Lato',sans-serif;flex-shrink:0;direction:ltr;}
+.seat:hover:not(.taken):not(.admin-reserved):not(.temp-locked){transform:scale(1.2);filter:brightness(1.3);}
+.seat.empty{background:var(--grey);}
+.seat.selected{background:var(--gold);color:var(--navy);}
+.seat.taken{background:var(--red);cursor:not-allowed;}
+.seat.admin-reserved{background:var(--purple);cursor:not-allowed;}
+.seat.temp-locked{background:var(--orange);cursor:not-allowed;}
+
+/* BALKON - alt kat ile aynı stil, her satırda kendi içinde numaralandırma */
+.balkon-grid{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.balkon-row{display:flex;align-items:center;gap:3px;justify-content:center;direction:rtl;}
+.balkon-row-label{font-family:'Cinzel',serif;font-size:9px;color:var(--gold-dark);width:16px;text-align:left;flex-shrink:0;user-select:none;direction:ltr;}
+.balkon-seat{width:var(--s);height:var(--s);border-radius:5px 5px 3px 3px;cursor:pointer;transition:transform .15s,filter .15s;border:none;outline:none;display:flex;align-items:center;justify-content:center;font-size:calc(var(--s) * 0.3);color:rgba(255,255,255,0.6);font-family:'Lato',sans-serif;flex-shrink:0;direction:ltr;}
+.balkon-seat:hover:not(.taken):not(.admin-reserved):not(.temp-locked){transform:scale(1.2);filter:brightness(1.3);}
+.balkon-seat.empty{background:var(--grey);}
+.balkon-seat.selected{background:var(--gold);color:var(--navy);}
+.balkon-seat.taken{background:var(--red);cursor:not-allowed;}
+.balkon-seat.admin-reserved{background:var(--purple);cursor:not-allowed;}
+.balkon-seat.temp-locked{background:var(--orange);cursor:not-allowed;}
+
+/* SUMMARY */
+#selected-summary{display:none;background:var(--navy-mid);border-top:1px solid var(--gold-dark);border-bottom:1px solid var(--gold-dark);padding:13px 24px;text-align:center;}
+#selected-summary h4{font-family:'Cinzel',serif;color:var(--gold);font-size:10px;letter-spacing:2px;margin-bottom:5px;}
+#selected-list{color:var(--cream);font-size:13px;line-height:1.8;}
+
+/* FORM */
+.form-section{padding:26px 24px;max-width:520px;margin:0 auto;}
+.form-section h3{font-family:'Cinzel',serif;color:var(--gold);font-size:11px;letter-spacing:2px;margin-bottom:18px;text-align:center;}
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:10px;letter-spacing:2px;color:var(--gold-light);text-transform:uppercase;margin-bottom:5px;}
+.form-group input{width:100%;background:var(--navy-mid);border:1px solid var(--gold-dark);border-radius:4px;padding:11px 13px;color:var(--cream);font-size:15px;font-family:'Lato',sans-serif;transition:border-color .2s;}
+.form-group input:focus{outline:none;border-color:var(--gold);}
+.form-group input::placeholder{color:var(--grey-light);}
+.form-group input.error{border-color:var(--red);}
+.field-error{font-size:11px;color:#e07070;margin-top:4px;display:none;}
+.kvkk{font-size:11px;color:var(--grey-light);text-align:center;margin-bottom:8px;line-height:1.6;}
+.spam-warning{font-size:11px;color:var(--orange);text-align:center;margin-bottom:18px;line-height:1.6;background:rgba(230,126,34,0.1);border:1px solid rgba(230,126,34,0.3);border-radius:4px;padding:8px 12px;}
+.btn-reserve{width:100%;background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:var(--navy);border:none;border-radius:4px;padding:15px;font-family:'Cinzel',serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:filter .2s;}
+.btn-reserve:hover{filter:brightness(1.1);}
+.btn-reserve:disabled{opacity:.5;cursor:not-allowed;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.active{display:flex;}
+.modal{background:var(--navy-mid);border:1px solid var(--gold-dark);border-radius:8px;padding:28px 24px;max-width:400px;width:100%;text-align:center;}
+.modal h3{font-family:'Cinzel',serif;color:var(--gold);font-size:14px;margin-bottom:10px;}
+.modal p{color:var(--gold-light);font-size:13px;line-height:1.7;margin-bottom:20px;}
+.modal-btns{display:flex;gap:10px;justify-content:center;}
+.btn-m-back{background:transparent;border:1px solid var(--gold-dark);color:var(--gold);padding:9px 20px;border-radius:4px;font-family:'Cinzel',serif;font-size:11px;cursor:pointer;}
+.btn-m-exit{background:var(--gold-dark);border:none;color:var(--cream);padding:9px 20px;border-radius:4px;font-family:'Cinzel',serif;font-size:11px;cursor:pointer;}
+
+/* SUCCESS */
+#success-view{display:none;padding:44px 24px;text-align:center;max-width:480px;margin:0 auto;}
+#success-view .check{font-size:52px;margin-bottom:14px;}
+#success-view h2{font-family:'Cinzel',serif;color:var(--gold);font-size:19px;margin-bottom:10px;}
+#success-view p{color:var(--gold-light);line-height:1.7;font-size:13px;}
+
+footer{border-top:1px solid var(--gold-dark);padding:16px;text-align:center;color:var(--grey-light);font-size:10px;letter-spacing:1px;}
+
+.scroll-hint{text-align:center;font-size:11px;color:var(--grey-light);padding:4px 0 8px;display:none;}
+.scroll-hint{display:none;}
+</style>
+</head>
+<body>
+
+<!-- COUNTDOWN -->
+<div id="countdown-overlay">
+  <div><div class="ornament">✦ ✦ ✦</div><h1>BANDIRMA SANAT MÜZİĞİ</h1><p>Konser Rezervasyon Sistemi</p></div>
+  <div class="countdown-grid">
+    <div class="count-box"><span id="cd-days">--</span><label>Gün</label></div>
+    <div class="count-box"><span id="cd-hours">--</span><label>Saat</label></div>
+    <div class="count-box"><span id="cd-mins">--</span><label>Dakika</label></div>
+    <div class="count-box"><span id="cd-secs">--</span><label>Saniye</label></div>
+  </div>
+  <div class="cd-info">Rezervasyonlar <strong id="open-date-text" style="color:var(--gold-light);">—</strong> tarihinde açılacaktır.<br>Lütfen o saatte tekrar ziyaret ediniz.</div>
+</div>
+
+<!-- MAIN -->
+<div id="main-content" style="display:none;">
+<header>
+  <div class="ornament">✦ ✦ ✦</div>
+  <h1>TÜRK SANAT MÜZİĞİ</h1>
+  <h2>Bahar Konseri</h2>
+  <p>Şef Eser Devecioğlu Yönetiminde &nbsp;|&nbsp; 19 Nisan 2026 Pazar 20:00</p>
+  <p style="font-size:10px;margin-top:3px;color:var(--grey-light);">Bandırma Barış Manço Kültür Merkezi</p>
+</header>
+
+<div class="how-to">
+  <h3>NASIL REZERVASYON YAPILIR?</h3>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><p>Haritadan istediğiniz koltuğa tıklayın</p></div>
+    <div class="step"><div class="step-num">2</div><p>Ad/Soyad, e-posta ve telefon bilgilerinizi girin</p></div>
+    <div class="step"><div class="step-num">3</div><p>"Rezervasyon Yap" butonuna tıklayın</p></div>
+    <div class="step"><div class="step-num">4</div><p>Onay e-postanızı kontrol edin</p></div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--grey)"></div>Boş</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>Seçiminiz</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Dolu</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>Ayrılmış</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>Geçici (15 dk)</div>
+</div>
+
+<div id="timer-bar">⏱ Seçimleriniz <span id="timer-text">15:00</span> içinde serbest kalacaktır.</div>
+
+<!-- SEAT MAP -->
+<div class="seat-map-wrapper">
+  <div class="seat-map-inner">
+
+    <!-- SAHNE EN ÜSTTE -->
+    <div class="stage-area">
+      <div class="stage-bar"></div>
+      <div class="stage-text">S A H N E</div>
+    </div>
+
+    <!-- ALT KAT: A sahneye yakın, L uzak -->
+    <div class="zone-label">— ALT KAT —</div>
+    <div class="seat-section" id="lower-section"></div>
+
+    <!-- BALKON - HER SATIRDA KENDİ İÇİNDE NUMARALANDIRMA -->
+    <div class="zone-label" style="margin-top:24px;">— BALKON —</div>
+    <div class="balkon-grid" id="balkon-section"></div>
+
+  </div>
+</div>
+<div class="scroll-hint">◀ Koltuk haritasını kaydırabilirsiniz ▶</div>
+
+<div id="selected-summary">
+  <h4>SEÇİMİNİZ</h4>
+  <div id="selected-list"></div>
+</div>
+
+<div id="form-section" class="form-section" style="display:none;">
+  <h3>KİŞİSEL BİLGİLER</h3>
+  <div class="form-group">
+    <label>Ad Soyad</label>
+    <input type="text" id="inp-name" placeholder="Adınız ve soyadınız" autocomplete="name">
+    <div class="field-error" id="err-name">Lütfen adınızı ve soyadınızı giriniz.</div>
+  </div>
+  <div class="form-group">
+    <label>E-Posta</label>
+    <input type="email" id="inp-email" placeholder="ornek@mail.com" autocomplete="email">
+    <div class="field-error" id="err-email">Lütfen geçerli bir e-posta adresi giriniz. (örn: ad@gmail.com)</div>
+  </div>
+  <div class="form-group">
+    <label>Telefon</label>
+    <input type="tel" id="inp-phone" placeholder="05XX XXX XX XX" autocomplete="tel" maxlength="11">
+    <div class="field-error" id="err-phone">Telefon numarası 0 ile başlayan 11 haneli olmalıdır. (örn: 05321234567)</div>
+  </div>
+  <p class="kvkk">Kişisel bilgileriniz yalnızca rezervasyon amacıyla kullanılmakta olup üçüncü şahıslarla paylaşılmamaktadır.</p>
+  <div class="spam-warning">⚠ Onay e-postası spam / gereksiz posta klasörünüze düşebilir. Lütfen kontrol etmeyi unutmayınız.</div>
+  <button class="btn-reserve" id="btn-reserve" onclick="submitReservation()">REZERVASYON YAP</button>
+</div>
+
+<div id="success-view">
+  <div class="check">✅</div>
+  <h2>Rezervasyonunuz Alındı!</h2>
+  <p>Onay bilgileri e-posta adresinize gönderildi.<br>
+  <strong style="color:var(--orange);">⚠ Spam / gereksiz posta klasörünüzü kontrol etmeyi unutmayınız.</strong><br><br>
+  <em style="color:var(--gold-light);">İyi konserler dileriz.</em></p>
+  <div id="success-seats" style="margin:16px 0;color:var(--gold);font-size:14px;"></div>
+  <button onclick="window.location.reload()" style="margin-top:8px;background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:var(--navy);border:none;border-radius:4px;padding:12px 28px;font-family:'Cinzel',serif;font-size:12px;letter-spacing:2px;cursor:pointer;">ANA SAYFAYA DÖN</button>
+</div>
+</div>
+
+<!-- EXIT MODAL -->
+<div class="modal-overlay" id="exit-modal">
+  <div class="modal">
+    <h3>⚠ Sayfadan Ayrılıyorsunuz</h3>
+    <p>Seçtiğiniz koltuklar rezervasyon yapılmadan iptal edilecektir. Yine de ayrılmak istiyor musunuz?</p>
+    <div class="modal-btns">
+      <button class="btn-m-back" onclick="closeExitModal()">Geri Dön</button>
+      <button class="btn-m-exit" onclick="confirmExit()">Ayrıl</button>
+    </div>
+  </div>
+</div>
+
+<footer>Bandırma Sanat Müziği Topluluğu &nbsp;·&nbsp; bandirmasanatmuzigi@gmail.com</footer>
+
+<script>
+const FIREBASE_CONFIG={apiKey:"AIzaSyDhKzQAs2CXS4GMhQBPd3i8W1TM1R9oJeU",authDomain:"bandirma-sanat-muzigi.firebaseapp.com",projectId:"bandirma-sanat-muzigi",storageBucket:"bandirma-sanat-muzigi.firebasestorage.app",messagingSenderId:"494307833143",appId:"1:494307833143:web:de6550cb0ade33168616b2"};
+const GAS_URL="https://script.google.com/macros/s/AKfycbxeS7sCnkBkSe3TjXlBWpj7mjuCYp_RmZmm88CreJdKuGI96wlFAJwjNedzR0sALcgg/exec";
+const LOCK_MINUTES=15;
+
+// ALT KAT SATIRLARI
+const LOWER_ROWS=[
+  {label:"A",seats:24},
+  {label:"B",seats:24},
+  {label:"C",seats:24},
+  {label:"D",seats:24},
+  {label:"E",seats:24},
+  {label:"G",seats:24},
+  {label:"H",seats:24},
+  {label:"I",seats:24},
+  {label:"K",seats:24},
+  {label:"L",seats:24},
+];
+
+// BALKON SATIRLARI - her satırda kendi içinde 1'den başlayan numaralandırma
+const BALKON_ROWS=[
+  {label:"M",seats:23},
+  {label:"O",seats:22},
+  {label:"P",seats:23},
+  {label:"S",seats:19},
+  {label:"Y",seats:14},
+  {label:"Z",seats:12}
+];
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const db=firebase.firestore();
+let selectedSeats=[],sessionId=Math.random().toString(36).substring(2)+Date.now();
+let lockEndTime=null,timerInterval=null,exitConfirmed=false,seatStates={},pendingHref=null;
+
+// ── COUNTDOWN ──
+async function checkOpenDate(){
+  try{
+    const doc=await db.collection("config").doc("settings").get();
+    const openTs=doc.exists&&doc.data().openDate?doc.data().openDate.toDate():null;
+    if(!openTs||Date.now()>=openTs.getTime())startApp();
+    else{
+      document.getElementById("open-date-text").textContent=openTs.toLocaleString("tr-TR");
+      updateCountdown(openTs);
+      const iv=setInterval(()=>{if(Date.now()>=openTs.getTime()){clearInterval(iv);startApp();}else updateCountdown(openTs);},1000);
+    }
+  }catch(e){startApp();}
+}
+function updateCountdown(t){
+  const d=Math.max(0,t-Date.now());
+  document.getElementById("cd-days").textContent=String(Math.floor(d/86400000)).padStart(2,"0");
+  document.getElementById("cd-hours").textContent=String(Math.floor((d%86400000)/3600000)).padStart(2,"0");
+  document.getElementById("cd-mins").textContent=String(Math.floor((d%3600000)/60000)).padStart(2,"0");
+  document.getElementById("cd-secs").textContent=String(Math.floor((d%60000)/1000)).padStart(2,"0");
+}
+function calcSeatSize(){
+  const padding = 16;
+  const labelW = 18 * 2 + 3 * 2;
+  const gapTotal = 3 * 25;
+  const available = window.innerWidth - padding - labelW - gapTotal;
+  const size = Math.min(26, Math.max(12, Math.floor(available / 25)));
+  document.documentElement.style.setProperty('--s', size + 'px');
+}
+function startApp(){
+  document.getElementById("countdown-overlay").style.display="none";
+  document.getElementById("main-content").style.display="block";
+  calcSeatSize();
+  buildSeatMap();
+  buildBalkon(); // Her satırda kendi içinde numaralandırma
+  listenSeats();
+  window.addEventListener('resize', calcSeatSize);
+}
+
+// ── ALT KAT ──
+function buildSeatMap(){
+  const c=document.getElementById("lower-section");c.innerHTML="";
+  LOWER_ROWS.forEach(row=>{
+    const rowEl=document.createElement("div");
+    rowEl.className="seat-row";
+    const lblR=document.createElement("div");lblR.className="row-label";lblR.textContent=row.label;rowEl.appendChild(lblR);
+    for(let n=1;n<=row.seats;n++){
+      const id=`${row.label}${n}`;
+      const s=document.createElement("button");
+      s.className="seat empty";s.id=`seat-${id}`;s.textContent=n;
+      s.onclick=()=>toggleSeat(id);
+      rowEl.appendChild(s);
+    }
+    const lblL=document.createElement("div");lblL.className="row-label";lblL.textContent=row.label;rowEl.appendChild(lblL);
+    c.appendChild(rowEl);
+  });
+}
+
+// ── BALKON - HER SATIRDA KENDİ İÇİNDE 1'DEN BAŞLAYAN NUMARALAR ──
+// Koltuk ID'leri: M1, M2, M3... O1, O2... P1... Z12
+function buildBalkon(){
+  const container=document.getElementById("balkon-section");
+  container.innerHTML="";
+  
+  BALKON_ROWS.forEach(row=>{
+    const rowEl=document.createElement("div");
+    rowEl.className="balkon-row";
+    
+    // Sağ etiket
+    const lblR=document.createElement("div");
+    lblR.className="balkon-row-label";
+    lblR.textContent=row.label;
+    rowEl.appendChild(lblR);
+    
+    // Koltukları oluştur - her satırda 1'den başlar
+    for(let seatNum=1;seatNum<=row.seats;seatNum++){
+      const seatId=`${row.label}${seatNum}`; // Örn: M1, M2, O1, O2...
+      const seatBtn=document.createElement("button");
+      seatBtn.className="balkon-seat empty";
+      seatBtn.id=`seat-${seatId}`;
+      seatBtn.textContent=seatNum;
+      seatBtn.onclick=()=>toggleSeat(seatId);
+      rowEl.appendChild(seatBtn);
+    }
+    
+    // Sol etiket
+    const lblL=document.createElement("div");
+    lblL.className="balkon-row-label";
+    lblL.textContent=row.label;
+    rowEl.appendChild(lblL);
+    
+    container.appendChild(rowEl);
+  });
+}
+
+// ── FIRESTORE ──
+function listenSeats(){
+  db.collection("seats").onSnapshot(snap=>{
+    const ns={};
+    snap.forEach(doc=>{
+      const d=doc.data();
+      if(d.status==="locked"&&d.lockExpires){
+        const exp=d.lockExpires.toDate?d.lockExpires.toDate():new Date(d.lockExpires);
+        if(Date.now()>exp.getTime()){db.collection("seats").doc(doc.id).delete();return;}
+      }
+      ns[doc.id]=d;
+    });
+    seatStates=ns;
+    // Alt kat
+    LOWER_ROWS.forEach(row=>{for(let n=1;n<=row.seats;n++){const id=`${row.label}${n}`;updateSeatUI(id,ns[id]||null);}});
+    // Balkon - tüm satırlar
+    BALKON_ROWS.forEach(row=>{
+      for(let n=1;n<=row.seats;n++){
+        const id=`${row.label}${n}`;
+        updateSeatUI(id,ns[id]||null);
+      }
+    });
+  });
+}
+
+function updateSeatUI(seatId,data){
+  const el=document.getElementById(`seat-${seatId}`);if(!el)return;
+  const isBalkon=seatId.match(/^[MOPRSYZ]/); // Balkon satırları M,O,P,S,Y,Z
+  const base=isBalkon?"balkon-seat":"seat";
+  if(!data){el.className=base+" empty";return;}
+  el.className=base;
+  if(data.status==="reserved")el.classList.add("taken");
+  else if(data.status==="admin")el.classList.add("admin-reserved");
+  else if(data.status==="locked")el.classList.add(data.lockedBy===sessionId?"selected":"temp-locked");
+  else el.classList.add("empty");
+}
+
+async function toggleSeat(seatId){
+  const data=seatStates[seatId];
+  if(data){if(data.status==="reserved"||data.status==="admin")return;if(data.status==="locked"&&data.lockedBy!==sessionId)return;}
+  if(selectedSeats.includes(seatId)){
+    selectedSeats=selectedSeats.filter(s=>s!==seatId);
+    await db.collection("seats").doc(seatId).delete();
+  }else{
+    const exp=new Date(Date.now()+LOCK_MINUTES*60000);
+    await db.collection("seats").doc(seatId).set({status:"locked",lockedBy:sessionId,lockExpires:firebase.firestore.Timestamp.fromDate(exp)});
+    selectedSeats.push(seatId);
+    if(!lockEndTime)lockEndTime=Date.now()+LOCK_MINUTES*60000;
+  }
+  updateSummary();manageTimer();
+}
+
+function seatLabel(id){
+  // Balkon mu kontrol et (M,O,P,S,Y,Z ile başlıyorsa)
+  if(id.match(/^[MOPRSYZ]/)){
+    return `${id} No'lu Koltuk (Balkon)`;
+  }
+  return `${id} No'lu Koltuk`;
+}
+
+function updateSummary(){
+  const sum=document.getElementById("selected-summary"),lst=document.getElementById("selected-list"),frm=document.getElementById("form-section");
+  if(selectedSeats.length===0){sum.style.display="none";frm.style.display="none";return;}
+  sum.style.display="block";frm.style.display="block";
+  lst.textContent=selectedSeats.map(seatLabel).join(" · ");
+}
+
+function manageTimer(){
+  const bar=document.getElementById("timer-bar");
+  if(selectedSeats.length===0){bar.style.display="none";clearInterval(timerInterval);return;}
+  bar.style.display="block";
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    const rem=Math.max(0,lockEndTime-Date.now());
+    const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
+    document.getElementById("timer-text").textContent=`${m}:${String(s).padStart(2,"0")}`;
+    if(rem===0){clearInterval(timerInterval);releaseAllLocks();}
+  },1000);
+}
+
+async function releaseAllLocks(){
+  for(const id of selectedSeats)await db.collection("seats").doc(id).delete();
+  selectedSeats=[];lockEndTime=null;updateSummary();
+  document.getElementById("timer-bar").style.display="none";
+  alert("Seçimlerinizin süresi doldu. Koltuklar serbest bırakıldı.");
+}
+
+// ── VALIDATION ──
+function validateForm(){
+  let ok=true;
+  const name=document.getElementById("inp-name").value.trim();
+  const email=document.getElementById("inp-email").value.trim();
+  const phone=document.getElementById("inp-phone").value.trim().replace(/\s/g,"");
+  if(!name){showErr("inp-name","err-name",true);ok=false;}else showErr("inp-name","err-name",false);
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showErr("inp-email","err-email",true);ok=false;}else showErr("inp-email","err-email",false);
+  if(!/^0[0-9]{10}$/.test(phone)){showErr("inp-phone","err-phone",true);ok=false;}else showErr("inp-phone","err-phone",false);
+  return ok;
+}
+function showErr(inputId,errId,show){
+  document.getElementById(inputId).classList.toggle("error",show);
+  document.getElementById(errId).style.display=show?"block":"none";
+}
+
+// ── SUBMIT ──
+async function submitReservation(){
+  if(!validateForm())return;
+  if(selectedSeats.length===0){alert("Lütfen en az bir koltuk seçiniz.");return;}
+  const name=document.getElementById("inp-name").value.trim();
+  const email=document.getElementById("inp-email").value.trim();
+  const phone=document.getElementById("inp-phone").value.trim();
+  const btn=document.getElementById("btn-reserve");btn.disabled=true;btn.textContent="İşleniyor...";
+  try{
+    const reservationId="BSM-"+Date.now().toString(36).toUpperCase();
+    const batch=db.batch();
+    selectedSeats.forEach(seatId=>{
+      batch.set(db.collection("seats").doc(seatId),{status:"reserved",reservedBy:email,name,phone,reservationId,reservedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    });
+    await batch.commit();
+    await db.collection("reservations").doc(reservationId).set({name,email,phone,seats:selectedSeats,reservedAt:firebase.firestore.FieldValue.serverTimestamp(),status:"active"});
+    await sendMail(email,"Rezervasyon Onayı – Bandırma Sanat Müziği Bahar Konseri",buildResvMail(name,phone,selectedSeats.map(seatLabel).join(", "),reservationId));
+    const confirmedSeats=selectedSeats.slice();
+    clearInterval(timerInterval);lockEndTime=null;selectedSeats=[];exitConfirmed=true;
+    ["header",".how-to",".legend","#timer-bar",".seat-map-wrapper",".scroll-hint","#selected-summary","#form-section"].forEach(sel=>{const el=document.querySelector(sel);if(el)el.style.display="none";});
+    document.getElementById("success-view").style.display="block";
+    document.getElementById("success-seats").textContent="Rezervasyon Yaptığınız Yer(ler): "+confirmedSeats.map(seatLabel).join(" · ");
+  }catch(err){alert("Bir hata oluştu: "+err.message);btn.disabled=false;btn.textContent="REZERVASYON YAP";}
+}
+
+async function sendMail(to,subject,body){
+  await fetch(GAS_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify({to,subject,body})});
+}
+
+function buildResvMail(name,phone,seats,resId){
+  return`<!DOCTYPE html><html><body style="font-family:Georgia,serif;background:#1a1a2e;margin:0;padding:20px;"><div style="max-width:600px;margin:0 auto;background:#16213e;border:1px solid #c9a96e;border-radius:8px;padding:36px;"><div style="text-align:center;margin-bottom:20px;"><h1 style="color:#c9a96e;font-size:20px;margin:0;">Bandırma Sanat Müziği</h1><p style="color:#a0a0a0;font-size:12px;margin:4px 0 0;">Türk Sanat Müziği Bahar Konseri</p></div><div style="border-top:1px solid #c9a96e;border-bottom:1px solid #c9a96e;padding:14px 0;margin-bottom:20px;"><h2 style="color:#fff;font-size:17px;margin:0 0 3px;">✅ Rezervasyonunuz Onaylandı</h2><p style="color:#a0a0a0;margin:0;font-size:12px;">Aşağıda rezervasyon bilgilerinizi bulabilirsiniz.</p></div><table style="width:100%;border-collapse:collapse;margin-bottom:20px;"><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Ad Soyad</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${name}</td></tr><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Telefon</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${phone}</td></tr><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Seçilen Yer(ler)</td><td style="color:#c9a96e;padding:6px 0;font-size:13px;text-align:right;font-weight:bold;">${seats}</td></tr><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Rezervasyon No</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${resId}</td></tr></table><div style="background:#0f3460;border-radius:6px;padding:16px;margin-bottom:20px;"><h3 style="color:#c9a96e;margin:0 0 7px;font-size:13px;">🎵 Etkinlik Bilgileri</h3><p style="color:#fff;margin:3px 0;font-size:12px;">Türk Sanat Müziği Bahar Konseri</p><p style="color:#a0a0a0;margin:3px 0;font-size:12px;">19 Nisan 2026 Pazar, Saat 20:00</p><p style="color:#a0a0a0;margin:3px 0;font-size:12px;">Bandırma Barış Manço Kültür Merkezi</p></div><div style="background:#2a1a0a;border:1px solid #8b6914;border-radius:6px;padding:14px;margin-bottom:20px;"><p style="color:#e8d5a3;margin:0;font-size:12px;">⚠ <strong>Spam / gereksiz posta klasörünüzü kontrol etmeyi unutmayınız.</strong></p></div><div style="background:#1a2a1a;border:1px solid #3a6b3a;border-radius:6px;padding:14px;margin-bottom:20px;"><p style="color:#a0c0a0;margin:0;font-size:12px;">İptal talebi için lütfen bizimle iletişime geçiniz:<br><strong>bandirmasanatmuzigi@gmail.com</strong></p></div><p style="color:#606060;font-size:10px;text-align:center;margin:0;">Bu mail otomatik gönderilmiştir · bandirmasanatmuzigi@gmail.com</p></div></body></html>`;
+}
+
+// ── EXIT ──
+window.addEventListener("beforeunload",e=>{if(selectedSeats.length>0&&!exitConfirmed){e.preventDefault();e.returnValue="";}});
+document.addEventListener("click",e=>{
+  const a=e.target.closest("a");
+  if(a&&selectedSeats.length>0&&!exitConfirmed){e.preventDefault();pendingHref=a.href;document.getElementById("exit-modal").classList.add("active");}
+});
+function closeExitModal(){document.getElementById("exit-modal").classList.remove("active");pendingHref=null;}
+async function confirmExit(){exitConfirmed=true;await releaseAllLocks();document.getElementById("exit-modal").classList.remove("active");if(pendingHref)window.location.href=pendingHref;}
+
+checkOpenDate();
+</script>
+</body>
+</html>

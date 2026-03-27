@@ -542,7 +542,7 @@ function showErr(inputId,errId,show){
   document.getElementById(errId).style.display=show?"block":"none";
 }
 
-// ── SUBMIT ──
+// ── SUBMIT (KVKK KAYITLI) ──
 async function submitReservation(){
   if(!validateForm())return;
   if(selectedSeats.length===0){alert("Lütfen en az bir koltuk seçiniz.");return;}
@@ -557,7 +557,17 @@ async function submitReservation(){
       batch.set(db.collection("seats").doc(seatId),{status:"reserved",reservedBy:email,name,phone,reservationId,reservedAt:firebase.firestore.FieldValue.serverTimestamp()});
     });
     await batch.commit();
-    await db.collection("reservations").doc(reservationId).set({name,email,phone,seats:selectedSeats,reservedAt:firebase.firestore.FieldValue.serverTimestamp(),status:"active"});
+    
+    // KVKK onay bilgisi eklendi
+    await db.collection("reservations").doc(reservationId).set({
+      name, email, phone, 
+      seats: selectedSeats,
+      reservedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      status: "active",
+      kvkkOnay: true,
+      kvkkOnayTarihi: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
     await sendMail(email,"Rezervasyon Onayı – Bandırma Sanat Müziği Bahar Konseri",buildResvMail(name,phone,selectedSeats.map(seatLabel).join(", "),reservationId));
     const confirmedSeats=selectedSeats.slice();
     clearInterval(timerInterval);lockEndTime=null;selectedSeats=[];exitConfirmed=true;
@@ -572,7 +582,13 @@ async function sendMail(to,subject,body){
 }
 
 function buildResvMail(name,phone,seats,resId){
-  return`<!DOCTYPE html><html><body style="font-family:Georgia,serif;background:#1a1a2e;margin:0;padding:20px;"><div style="max-width:600px;margin:0 auto;background:#16213e;border:1px solid #c9a96e;border-radius:8px;padding:36px;"><div style="text-align:center;margin-bottom:20px;"><h1 style="color:#c9a96e;font-size:20px;margin:0;">Bandırma Sanat Müziği</h1><p style="color:#a0a0a0;font-size:12px;margin:4px 0 0;">Türk Sanat Müziği Bahar Konseri</p></div><div style="border-top:1px solid #c9a96e;border-bottom:1px solid #c9a96e;padding:14px 0;margin-bottom:20px;"><h2 style="color:#fff;font-size:17px;margin:0 0 3px;">✅ Rezervasyonunuz Onaylandı</h2><p style="color:#a0a0a0;margin:0;font-size:12px;">Aşağıda rezervasyon bilgilerinizi bulabilirsiniz.</p></div><table style="width:100%;border-collapse:collapse;margin-bottom:20px;">}</td><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Ad Soyad</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${name}</td></tr><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Telefon</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${phone}</td></tr><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Seçilen Yer(ler)</td><td style="color:#c9a96e;padding:6px 0;font-size:13px;text-align:right;font-weight:bold;">${seats}</td></tr><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Rezervasyon No</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${resId}</td></tr></table><div style="background:#0f3460;border-radius:6px;padding:16px;margin-bottom:20px;"><h3 style="color:#c9a96e;margin:0 0 7px;font-size:13px;">🎵 Etkinlik Bilgileri</h3><p style="color:#fff;margin:3px 0;font-size:12px;">Türk Sanat Müziği Bahar Konseri</p><p style="color:#a0a0a0;margin:3px 0;font-size:12px;">19 Nisan 2026 Pazar, Saat 20:00</p><p style="color:#a0a0a0;margin:3px 0;font-size:12px;">Bandırma Barış Manço Kültür Merkezi</p></div><div style="background:#2a1a0a;border:1px solid #8b6914;border-radius:6px;padding:14px;margin-bottom:20px;"><p style="color:#e8d5a3;margin:0;font-size:12px;">⚠ <strong>Spam / gereksiz posta klasörünüzü kontrol etmeyi unutmayınız.</strong></p></div><div style="background:#1a2a1a;border:1px solid #3a6b3a;border-radius:6px;padding:14px;margin-bottom:20px;"><p style="color:#a0c0a0;margin:0;font-size:12px;">İptal talebi için lütfen bizimle iletişime geçiniz:<br><strong>bandirmasanatmuzigi@gmail.com</strong></p></div><p style="color:#606060;font-size:10px;text-align:center;margin:0;">Bu mail otomatik gönderilmiştir · bandirmasanatmuzigi@gmail.com</p></div></body></html>`;
+  return`<!DOCTYPE html><html><body style="font-family:Georgia,serif;background:#1a1a2e;margin:0;padding:20px;"><div style="max-width:600px;margin:0 auto;background:#16213e;border:1px solid #c9a96e;border-radius:8px;padding:36px;"><div style="text-align:center;margin-bottom:20px;"><h1 style="color:#c9a96e;font-size:20px;margin:0;">Bandırma Sanat Müziği</h1><p style="color:#a0a0a0;font-size:12px;margin:4px 0 0;">Türk Sanat Müziği Bahar Konseri</p></div><div style="border-top:1px solid #c9a96e;border-bottom:1px solid #c9a96e;padding:14px 0;margin-bottom:20px;"><h2 style="color:#fff;font-size:17px;margin:0 0 3px;">✅ Rezervasyonunuz Onaylandı</h2><p style="color:#a0a0a0;margin:0;font-size:12px;">Aşağıda rezervasyon bilgilerinizi bulabilirsiniz.</p></div><table style="width:100%;border-collapse:collapse;margin-bottom:20px;">}
+
+<td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Ad Soyad</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${name}</td></tr>
+<tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Telefon</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${phone}</td></tr>
+<tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Seçilen Yer(ler)</td><td style="color:#c9a96e;padding:6px 0;font-size:13px;text-align:right;font-weight:bold;">${seats}</td></tr>
+<tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Rezervasyon No</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${resId}</td></tr>
+</table><div style="background:#0f3460;border-radius:6px;padding:16px;margin-bottom:20px;"><h3 style="color:#c9a96e;margin:0 0 7px;font-size:13px;">🎵 Etkinlik Bilgileri</h3><p style="color:#fff;margin:3px 0;font-size:12px;">Türk Sanat Müziği Bahar Konseri</p><p style="color:#a0a0a0;margin:3px 0;font-size:12px;">19 Nisan 2026 Pazar, Saat 20:00</p><p style="color:#a0a0a0;margin:3px 0;font-size:12px;">Bandırma Barış Manço Kültür Merkezi</p></div><div style="background:#2a1a0a;border:1px solid #8b6914;border-radius:6px;padding:14px;margin-bottom:20px;"><p style="color:#e8d5a3;margin:0;font-size:12px;">⚠ <strong>Spam / gereksiz posta klasörünüzü kontrol etmeyi unutmayınız.</strong></p></div><div style="background:#1a2a1a;border:1px solid #3a6b3a;border-radius:6px;padding:14px;margin-bottom:20px;"><p style="color:#a0c0a0;margin:0;font-size:12px;">İptal talebi için lütfen bizimle iletişime geçiniz:<br><strong>bandirmasanatmuzigi@gmail.com</strong></p></div><p style="color:#606060;font-size:10px;text-align:center;margin:0;">Bu mail otomatik gönderilmiştir · bandirmasanatmuzigi@gmail.com</p></div></body></html>`;
 }
 
 // ── EXIT ──

@@ -104,7 +104,47 @@ header p{color:var(--gold-light);font-size:clamp(10px,2vw,13px);letter-spacing:1
 .form-group input::placeholder{color:var(--grey-light);}
 .form-group input.error{border-color:var(--red);}
 .field-error{font-size:11px;color:#e07070;margin-top:4px;display:none;}
-.kvkk{font-size:11px;color:var(--grey-light);text-align:center;margin-bottom:8px;line-height:1.6;}
+
+/* KVKK STİLLERİ */
+.kvkk-box {
+  background: rgba(0,0,0,0.25);
+  border: 1px solid var(--gold-dark);
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+.kvkk-text {
+  font-size: 10px;
+  color: var(--grey-light);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+.kvkk-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--gold-light);
+  line-height: 1.4;
+}
+.kvkk-checkbox input {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: var(--gold);
+}
+.kvkk-checkbox span {
+  flex: 1;
+}
+#err-kvkk {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #e07070;
+  display: none;
+}
+
 .spam-warning{font-size:11px;color:var(--orange);text-align:center;margin-bottom:18px;line-height:1.6;background:rgba(230,126,34,0.1);border:1px solid rgba(230,126,34,0.3);border-radius:4px;padding:8px 12px;}
 .btn-reserve{width:100%;background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:var(--navy);border:none;border-radius:4px;padding:15px;font-family:'Cinzel',serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:filter .2s;}
 .btn-reserve:hover{filter:brightness(1.1);}
@@ -220,7 +260,24 @@ footer{border-top:1px solid var(--gold-dark);padding:16px;text-align:center;colo
     <input type="tel" id="inp-phone" placeholder="05XX XXX XX XX" autocomplete="tel" maxlength="11">
     <div class="field-error" id="err-phone">Telefon numarası 0 ile başlayan 11 haneli olmalıdır. (örn: 05321234567)</div>
   </div>
-  <p class="kvkk">Kişisel bilgileriniz yalnızca rezervasyon amacıyla kullanılmakta olup üçüncü şahıslarla paylaşılmamaktadır.</p>
+  
+  <!-- KVKK AYDINLATMA METNİ VE ONAY KUTUSU -->
+  <div class="kvkk-box">
+    <div class="kvkk-text">
+      <strong>🔒 KİŞİSEL VERİLERİN KORUNMASI HAKKINDA AYDINLATMA METNİ</strong><br>
+      Veri Sorumlusu: Bandırma Sanat Müziği Topluluğu<br>
+      Bu form aracılığıyla tarafınızdan talep edilen ad-soyad, telefon numarası ve/veya e-posta adresi bilgileriniz; 
+      yalnızca etkinlik rezervasyonu, bilgilendirme ve gerektiğinde iletişim kurulması amacıyla kullanılacaktır.<br>
+      Bilgileriniz üçüncü şahıslarla paylaşılmayacak, ticari amaçla kullanılmayacak ve etkinlik sonrasında sistemden silinecektir.<br>
+      6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında verilerinize erişim, düzeltme veya silinmesini talep etme hakkına sahipsiniz.
+    </div>
+    <label class="kvkk-checkbox">
+      <input type="checkbox" id="kvkk-checkbox">
+      <span>Aydınlatma metnini okudum, kişisel verilerimin belirtilen amaçla kullanılmasını kabul ediyorum.</span>
+    </label>
+    <div class="field-error" id="err-kvkk">Rezervasyon yapabilmek için KVKK onayı vermeniz gerekmektedir.</div>
+  </div>
+  
   <div class="spam-warning">⚠ Onay e-postası spam / gereksiz posta klasörünüze düşebilir. Lütfen kontrol etmeyi unutmayınız.</div>
   <button class="btn-reserve" id="btn-reserve" onclick="submitReservation()">REZERVASYON YAP</button>
 </div>
@@ -317,7 +374,7 @@ function startApp(){
   document.getElementById("main-content").style.display="block";
   calcSeatSize();
   buildSeatMap();
-  buildBalkon(); // Her satırda kendi içinde numaralandırma
+  buildBalkon();
   listenSeats();
   window.addEventListener('resize', calcSeatSize);
 }
@@ -342,7 +399,6 @@ function buildSeatMap(){
 }
 
 // ── BALKON - HER SATIRDA KENDİ İÇİNDE 1'DEN BAŞLAYAN NUMARALAR ──
-// Koltuk ID'leri: M1, M2, M3... O1, O2... P1... Z12
 function buildBalkon(){
   const container=document.getElementById("balkon-section");
   container.innerHTML="";
@@ -351,15 +407,13 @@ function buildBalkon(){
     const rowEl=document.createElement("div");
     rowEl.className="balkon-row";
     
-    // Sağ etiket
     const lblR=document.createElement("div");
     lblR.className="balkon-row-label";
     lblR.textContent=row.label;
     rowEl.appendChild(lblR);
     
-    // Koltukları oluştur - her satırda 1'den başlar
     for(let seatNum=1;seatNum<=row.seats;seatNum++){
-      const seatId=`${row.label}${seatNum}`; // Örn: M1, M2, O1, O2...
+      const seatId=`${row.label}${seatNum}`;
       const seatBtn=document.createElement("button");
       seatBtn.className="balkon-seat empty";
       seatBtn.id=`seat-${seatId}`;
@@ -368,7 +422,6 @@ function buildBalkon(){
       rowEl.appendChild(seatBtn);
     }
     
-    // Sol etiket
     const lblL=document.createElement("div");
     lblL.className="balkon-row-label";
     lblL.textContent=row.label;
@@ -391,9 +444,7 @@ function listenSeats(){
       ns[doc.id]=d;
     });
     seatStates=ns;
-    // Alt kat
     LOWER_ROWS.forEach(row=>{for(let n=1;n<=row.seats;n++){const id=`${row.label}${n}`;updateSeatUI(id,ns[id]||null);}});
-    // Balkon - tüm satırlar
     BALKON_ROWS.forEach(row=>{
       for(let n=1;n<=row.seats;n++){
         const id=`${row.label}${n}`;
@@ -405,7 +456,7 @@ function listenSeats(){
 
 function updateSeatUI(seatId,data){
   const el=document.getElementById(`seat-${seatId}`);if(!el)return;
-  const isBalkon=seatId.match(/^[MOPRSYZ]/); // Balkon satırları M,O,P,S,Y,Z
+  const isBalkon=seatId.match(/^[MOPRSYZ]/);
   const base=isBalkon?"balkon-seat":"seat";
   if(!data){el.className=base+" empty";return;}
   el.className=base;
@@ -431,7 +482,6 @@ async function toggleSeat(seatId){
 }
 
 function seatLabel(id){
-  // Balkon mu kontrol et (M,O,P,S,Y,Z ile başlıyorsa)
   if(id.match(/^[MOPRSYZ]/)){
     return `${id} No'lu Koltuk (Balkon)`;
   }
@@ -465,15 +515,26 @@ async function releaseAllLocks(){
   alert("Seçimlerinizin süresi doldu. Koltuklar serbest bırakıldı.");
 }
 
-// ── VALIDATION ──
+// ── VALIDATION (KVKK EKLENDİ) ──
 function validateForm(){
   let ok=true;
   const name=document.getElementById("inp-name").value.trim();
   const email=document.getElementById("inp-email").value.trim();
   const phone=document.getElementById("inp-phone").value.trim().replace(/\s/g,"");
+  const kvkkChecked = document.getElementById("kvkk-checkbox").checked;
+  
   if(!name){showErr("inp-name","err-name",true);ok=false;}else showErr("inp-name","err-name",false);
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showErr("inp-email","err-email",true);ok=false;}else showErr("inp-email","err-email",false);
   if(!/^0[0-9]{10}$/.test(phone)){showErr("inp-phone","err-phone",true);ok=false;}else showErr("inp-phone","err-phone",false);
+  
+  // KVKK kontrolü
+  if(!kvkkChecked){
+    document.getElementById("err-kvkk").style.display="block";
+    ok=false;
+  } else {
+    document.getElementById("err-kvkk").style.display="none";
+  }
+  
   return ok;
 }
 function showErr(inputId,errId,show){
@@ -511,7 +572,7 @@ async function sendMail(to,subject,body){
 }
 
 function buildResvMail(name,phone,seats,resId){
-  return`<!DOCTYPE html><html><body style="font-family:Georgia,serif;background:#1a1a2e;margin:0;padding:20px;"><div style="max-width:600px;margin:0 auto;background:#16213e;border:1px solid #c9a96e;border-radius:8px;padding:36px;"><div style="text-align:center;margin-bottom:20px;"><h1 style="color:#c9a96e;font-size:20px;margin:0;">Bandırma Sanat Müziği</h1><p style="color:#a0a0a0;font-size:12px;margin:4px 0 0;">Türk Sanat Müziği Bahar Konseri</p></div><div style="border-top:1px solid #c9a96e;border-bottom:1px solid #c9a96e;padding:14px 0;margin-bottom:20px;"><h2 style="color:#fff;font-size:17px;margin:0 0 3px;">✅ Rezervasyonunuz Onaylandı</h2><p style="color:#a0a0a0;margin:0;font-size:12px;">Aşağıda rezervasyon bilgilerinizi bulabilirsiniz.</p></div><table style="width:100%;border-collapse:collapse;margin-bottom:20px;"><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Ad Soyad</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${name}</td></tr><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Telefon</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${phone}</td></tr><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Seçilen Yer(ler)</td><td style="color:#c9a96e;padding:6px 0;font-size:13px;text-align:right;font-weight:bold;">${seats}</td></tr><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Rezervasyon No</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${resId}</td></tr></table><div style="background:#0f3460;border-radius:6px;padding:16px;margin-bottom:20px;"><h3 style="color:#c9a96e;margin:0 0 7px;font-size:13px;">🎵 Etkinlik Bilgileri</h3><p style="color:#fff;margin:3px 0;font-size:12px;">Türk Sanat Müziği Bahar Konseri</p><p style="color:#a0a0a0;margin:3px 0;font-size:12px;">19 Nisan 2026 Pazar, Saat 20:00</p><p style="color:#a0a0a0;margin:3px 0;font-size:12px;">Bandırma Barış Manço Kültür Merkezi</p></div><div style="background:#2a1a0a;border:1px solid #8b6914;border-radius:6px;padding:14px;margin-bottom:20px;"><p style="color:#e8d5a3;margin:0;font-size:12px;">⚠ <strong>Spam / gereksiz posta klasörünüzü kontrol etmeyi unutmayınız.</strong></p></div><div style="background:#1a2a1a;border:1px solid #3a6b3a;border-radius:6px;padding:14px;margin-bottom:20px;"><p style="color:#a0c0a0;margin:0;font-size:12px;">İptal talebi için lütfen bizimle iletişime geçiniz:<br><strong>bandirmasanatmuzigi@gmail.com</strong></p></div><p style="color:#606060;font-size:10px;text-align:center;margin:0;">Bu mail otomatik gönderilmiştir · bandirmasanatmuzigi@gmail.com</p></div></body></html>`;
+  return`<!DOCTYPE html><html><body style="font-family:Georgia,serif;background:#1a1a2e;margin:0;padding:20px;"><div style="max-width:600px;margin:0 auto;background:#16213e;border:1px solid #c9a96e;border-radius:8px;padding:36px;"><div style="text-align:center;margin-bottom:20px;"><h1 style="color:#c9a96e;font-size:20px;margin:0;">Bandırma Sanat Müziği</h1><p style="color:#a0a0a0;font-size:12px;margin:4px 0 0;">Türk Sanat Müziği Bahar Konseri</p></div><div style="border-top:1px solid #c9a96e;border-bottom:1px solid #c9a96e;padding:14px 0;margin-bottom:20px;"><h2 style="color:#fff;font-size:17px;margin:0 0 3px;">✅ Rezervasyonunuz Onaylandı</h2><p style="color:#a0a0a0;margin:0;font-size:12px;">Aşağıda rezervasyon bilgilerinizi bulabilirsiniz.</p></div><table style="width:100%;border-collapse:collapse;margin-bottom:20px;">}</td><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Ad Soyad</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${name}</td></tr><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Telefon</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${phone}</td></tr><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Seçilen Yer(ler)</td><td style="color:#c9a96e;padding:6px 0;font-size:13px;text-align:right;font-weight:bold;">${seats}</td></tr><tr><td style="color:#a0a0a0;padding:6px 0;font-size:13px;">Rezervasyon No</td><td style="color:#fff;padding:6px 0;font-size:13px;text-align:right;">${resId}</td></tr></table><div style="background:#0f3460;border-radius:6px;padding:16px;margin-bottom:20px;"><h3 style="color:#c9a96e;margin:0 0 7px;font-size:13px;">🎵 Etkinlik Bilgileri</h3><p style="color:#fff;margin:3px 0;font-size:12px;">Türk Sanat Müziği Bahar Konseri</p><p style="color:#a0a0a0;margin:3px 0;font-size:12px;">19 Nisan 2026 Pazar, Saat 20:00</p><p style="color:#a0a0a0;margin:3px 0;font-size:12px;">Bandırma Barış Manço Kültür Merkezi</p></div><div style="background:#2a1a0a;border:1px solid #8b6914;border-radius:6px;padding:14px;margin-bottom:20px;"><p style="color:#e8d5a3;margin:0;font-size:12px;">⚠ <strong>Spam / gereksiz posta klasörünüzü kontrol etmeyi unutmayınız.</strong></p></div><div style="background:#1a2a1a;border:1px solid #3a6b3a;border-radius:6px;padding:14px;margin-bottom:20px;"><p style="color:#a0c0a0;margin:0;font-size:12px;">İptal talebi için lütfen bizimle iletişime geçiniz:<br><strong>bandirmasanatmuzigi@gmail.com</strong></p></div><p style="color:#606060;font-size:10px;text-align:center;margin:0;">Bu mail otomatik gönderilmiştir · bandirmasanatmuzigi@gmail.com</p></div></body></html>`;
 }
 
 // ── EXIT ──
